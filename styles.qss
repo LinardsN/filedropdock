@@ -1,0 +1,32 @@
+QMainWindow {
+    background-color: rgba(54, 57, 63, 255);
+    border: none;
+}
+QGroupBox {
+    background-color: rgba(54, 57, 63, 255);
+    font-weight: bold;
+    color: #ffffff;
+}
+QPushButton {
+    background-color: rgba(64, 68, 75, 255);
+    font-weight: bold;
+    color: #ffffff;
+    border: 1px solid rgba(100, 100, 100, 150);
+    border-radius: 5px;
+}
+QPushButton:hover {
+    background-color: rgba(114, 137, 218, 255);
+}
+QListWidget
+{
+    background-color: rgba(47, 49, 54, 255);
+    alternate-background-color: rgba(54, 57, 63, 255);
+    border: none;
+    color: #ffffff;
+}
+QListWidget::item {
+    padding: 2px 5px;
+}
+QListWidget::item:selected {
+    background-color: rgba(114, 137, 218, 255);
+}
