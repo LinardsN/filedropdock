@@ -4,9 +4,9 @@ import shutil
 import mimetypes
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QLabel, QWidget, QShortcut,
                              QListWidget, QListWidgetItem, QAbstractItemView, QGraphicsBlurEffect, QGroupBox, QSizeGrip, QCheckBox)
-from PyQt5.QtCore import Qt, QUrl, QPoint, QMimeData, QSize, QEvent
+from PyQt5.QtCore import Qt, QUrl, QPoint, QMimeData, QSize, QEvent, QFileInfo
 from PyQt5.QtGui import QIcon, QKeySequence, QDrag
-from draggable_list_widget import DraggableListWidget
+from draggable_list_widget import DraggableListWidget, QFileIconProvider
 from clipboard_history_widget import ClipboardHistoryWidget
 from custom_size_grip import CustomSizeGrip
 
@@ -90,15 +90,43 @@ class DockOverlay(QMainWindow):
         return super().eventFilter(obj, event)
 
     def eventFilter(self, obj, event):
-        if obj == self.clipboard_history_widget.list_widget.viewport() or obj == self.list_widget:
-            if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-                self.drag_start_position = event.globalPos() - self.frameGeometry().topLeft()
-                return True
-            elif event.type() == QEvent.MouseMove and event.buttons() & Qt.LeftButton:
-                if self.drag_start_position is not None:
-                    self.move(event.globalPos() - self.drag_start_position)
+        if obj == self.clipboard_history_widget.list_widget.viewport() or obj == self.list_widget.viewport():
+            if event.type() == QEvent.DragEnter:
+                if event.mimeData().hasUrls():
+                    event.acceptProposedAction()
+                    return True
+            elif event.type() == QEvent.Drop:
+                if event.mimeData().hasUrls():
+                    event.acceptProposedAction()
+
+                    urls = event.mimeData().urls()
+                    icon_provider = QFileIconProvider()
+
+                    for url in urls:
+                        local_file_path = url.toLocalFile()
+
+                        if self.copy_mode_checkbox.isChecked():
+                            destination = os.path.join(os.path.expanduser('~'), os.path.basename(local_file_path))
+                            shutil.copy2(local_file_path, destination)
+                            local_file_path = destination
+
+                        item = QListWidgetItem(url.fileName())
+                        item.setToolTip(local_file_path)
+                        item.setData(Qt.UserRole, local_file_path)
+                        file_info = QFileInfo(local_file_path)
+                        file_icon = icon_provider.icon(file_info)
+                        item.setIcon(file_icon)
+                        self.list_widget.addItem(item)
+
                     return True
         return super().eventFilter(obj, event)
+
+
+
+
+
+
+    
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.drag_start_position = event.globalPos() - self.frameGeometry().topLeft()
@@ -121,27 +149,6 @@ class DockOverlay(QMainWindow):
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        for url in urls:
-            file_path = url.toLocalFile()
-            print(f'Dropped file: {file_path}')
-
-            file_name = os.path.basename(file_path)
-
-            # Add the dropped file to the list widget
-            item = QListWidgetItem(file_name)
-            item.setData(Qt.UserRole, file_path)  # Store the file path in the item
-
-            # Set the icon according to mime type
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if mime_type and mime_type.startswith('video'):
-                item.setIcon(QIcon("video_icon.png"))
-            else:
-                item.setIcon(QIcon(file_path))
-
-            self.list_widget.addItem(item)
 
 def run_overlay():
     app = QApplication(sys.argv)
